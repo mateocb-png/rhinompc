@@ -43,6 +43,21 @@ DEFAULT_PORT = int(os.environ.get("RHINO_MCP_PORT", "54321"))
 UI_TIMEOUT_S = 120
 DEFAULT_MODEL = "claude-opus-5"
 STICKY_KEY = "rhino_mcp_bridge_state"
+CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".rhinompc", "config.json")
+
+
+def _load_config():
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_config(data):
+    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -818,11 +833,14 @@ class BridgeWindow(object):
         self.chat_status = forms.Label()
         self.chat_status.Text = "Listo"
 
+        cfg = _load_config()
         self.key_box = forms.PasswordBox()
-        self.key_box.Text = state.get("api_key", "")
-        self.key_box.PlaceholderText = "ANTHROPIC_API_KEY (vacío = usar variable de entorno)"
+        self.key_box.Text = state.get("api_key") or cfg.get("api_key", "")
+        self.remember_box = forms.CheckBox()
+        self.remember_box.Text = "Recordar en este equipo"
+        self.remember_box.Checked = bool(cfg.get("api_key"))
         self.model_box = forms.TextBox()
-        self.model_box.Text = state.get("model", DEFAULT_MODEL)
+        self.model_box.Text = state.get("model") or cfg.get("model", DEFAULT_MODEL)
 
         f.Content = self._layout()
         f.Closed += self._on_closed
@@ -864,7 +882,7 @@ class BridgeWindow(object):
         add(self.log_area)
         add(self._label("Chat con Claude dentro de Rhino", True))
         add(self._row(self._label("Modelo"), self.model_box, expand=self.model_box))
-        add(self.key_box)
+        add(self._row(self._label("API key"), self.key_box, self.remember_box, expand=self.key_box))
         add(self.chat_area, True)
         add(self.input_box)
         add(self._row(self.send_btn, self.stop_btn, self.reset_btn, self.chat_status))
@@ -900,8 +918,25 @@ class BridgeWindow(object):
         agent = self.state["agent"]
         if not text or agent.busy:
             return
-        self.state["api_key"] = self.key_box.Text or ""
+        self.state["api_key"] = (self.key_box.Text or "").strip()
         self.state["model"] = (self.model_box.Text or DEFAULT_MODEL).strip()
+        if not self.state["api_key"] and not os.environ.get("ANTHROPIC_API_KEY"):
+            self.append_chat("Sistema",
+                             "Falta la API key. Crea una en https://platform.claude.com/settings/keys "
+                             "(empieza por sk-ant-), pégala en el campo 'API key' y vuelve a enviar.\n"
+                             "Nota: el chat interno usa la API de Anthropic (se factura aparte). "
+                             "Si usas Claude Code o Claude Desktop con el servidor MCP, no necesitas clave.")
+            return
+        try:
+            cfg = _load_config()
+            cfg["model"] = self.state["model"]
+            if self.remember_box.Checked:
+                cfg["api_key"] = self.state["api_key"]
+            else:
+                cfg.pop("api_key", None)
+            _save_config(cfg)
+        except OSError as ex:
+            self.append_log("No se pudo guardar la configuración: %s" % ex)
         self.input_box.Text = ""
         self.append_chat("Tú", text)
         agent.send(text, self.state["api_key"] or None, self.state["model"])

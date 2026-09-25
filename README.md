@@ -44,7 +44,7 @@ Si cambias el código del script, reinicia Rhino para que se cargue la nueva ver
 | Puerto / Iniciar / Detener | Controla el puente TCP que usa el servidor MCP externo |
 | Log | Cada herramienta ejecutada, con su duración o su error |
 | Modelo | Modelo de Claude para el chat (`claude-opus-5` por defecto) |
-| API key | Tu `ANTHROPIC_API_KEY`. Si lo dejas vacío, usa la variable de entorno. Se guarda solo en memoria |
+| API key | Tu clave de la API de Anthropic (`sk-ant-…`, se crea en platform.claude.com). Si lo dejas vacío, usa la variable `ANTHROPIC_API_KEY`. Con *Recordar en este equipo* se guarda en `~/.rhinompc/config.json` (texto plano); si no, solo en memoria |
 | Chat | Escribe y envía con **Ctrl+Enter**. Claude ejecuta herramientas, captura la vista para comprobar el resultado e itera |
 | Parar / Nueva conversación | Corta el bucle actual / borra el historial |
 
