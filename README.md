@@ -118,3 +118,20 @@ y `color` (`"#rrggbb"`).
 - Los comandos interactivos (que esperan clics) bloquean hasta que terminas en Rhino; usa la
   versión con guion (`_-Comando`) y pasa las opciones por texto.
 - Si Rhino está ocupado más de 120 s, la llamada devuelve un error de tiempo agotado.
+
+## Pruebas
+
+**Sin Rhino** (simula RhinoCommon y prueba puente ↔ servidor MCP ↔ chat):
+
+```bash
+uv run --with "mcp>=1.2,<2" python tests/test_offline.py
+```
+
+**Con Rhino real** (usa un documento de pruebas; crea y borra objetos en la capa `MCP_Test`):
+
+1. En Rhino: ejecuta `rhino/rhino_mcp_bridge.py`.
+2. En una terminal: `python tests/smoke_test_rhino.py`
+   (añade `VERBOSE=1` para ver el traceback de los fallos).
+
+Recorre todas las herramientas, guarda una captura en `tests/smoke_capture.png` y muestra
+un resumen `PASS` / `FAIL`.
